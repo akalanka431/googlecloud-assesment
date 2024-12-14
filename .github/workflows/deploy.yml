@@ -1,0 +1,36 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: codimite-assesment
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t gcr.io/codimite-assesment/app:latest .
+          docker push gcr.io/codimite-assesment/app:latest
+
+      - name: Deploy to GKE
+        run: |
+          kubectl create ns app-namespace || true
+          kubectl apply -f k8s/k8s-deployment.yaml
+          kubectl apply -f k8s/k8s-service.yaml
