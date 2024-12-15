@@ -15,16 +15,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Set up Google Cloud SDK
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          export_default_credentials: true
-
-      # Authenticate Docker with GCR
-      - name: Authenticate Docker with GCR
+      # Authenticate with GCP
+      - name: Authenticate with GCP
         run: |
           echo "${{ secrets.GCP_SA_KEY }}" > gcp-key.json
           gcloud auth activate-service-account --key-file=gcp-key.json
@@ -32,13 +24,11 @@ jobs:
 
       # Build the Docker image
       - name: Build Docker Image
-        run: |
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-service:latest .
+        run: docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-service:latest .
 
       # Push the Docker image to GCR
       - name: Push Docker Image
-        run: |
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-service:latest
+        run: docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-service:latest
 
   deploy:
     name: Deploy to GKE
