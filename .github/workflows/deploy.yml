@@ -11,22 +11,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout source code
+      # Step 1: Checkout source code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Decode Base64-encoded JSON and Authenticate with GCP
+      # Step 2: Decode Base64 Secret and Authenticate with GCP
       - name: Decode and Authenticate with GCP
         run: |
           echo "${{ secrets.GCP_SA_KEY_BASE64 }}" | base64 --decode > gcp-key.json
           gcloud auth activate-service-account --key-file=gcp-key.json
           gcloud auth configure-docker
 
-      # Build the Docker image
+      # Step 3: Build Docker Image
       - name: Build Docker Image
         run: docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-service:latest .
 
-      # Push the Docker image to GCR
+      # Step 4: Push Docker Image to Google Container Registry
       - name: Push Docker Image
         run: docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-service:latest
 
@@ -36,22 +36,23 @@ jobs:
     needs: build-and-push
 
     steps:
-      # Set up Google Cloud SDK
+      # Step 1: Set up Google Cloud SDK
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
 
-      # Authenticate kubectl using gcloud
+      # Step 2: Authenticate and Configure kubectl
       - name: Authenticate kubectl
         run: |
+          echo "${{ secrets.GCP_SA_KEY_BASE64 }}" | base64 --decode > gcp-key.json
+          gcloud auth activate-service-account --key-file=gcp-key.json
           gcloud container clusters get-credentials ${{ secrets.GCP_CLUSTER_NAME }} \
-          --region ${{ secrets.GCP_CLUSTER_REGION }} \
-          --project ${{ secrets.GCP_PROJECT_ID }}
+            --region ${{ secrets.GCP_CLUSTER_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }}
 
-      # Deploy to GKE
+      # Step 3: Deploy to GKE
       - name: Update Deployment in GKE
         run: |
           kubectl set image deployment/my-deployment my-container=gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-service:latest --record
